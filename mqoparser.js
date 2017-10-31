@@ -17,10 +17,9 @@ MqoParser.parse = function(text) {
   var mqo = new Mqo();
   mqo.parse(text);
   return mqo;
-}
+};
 
-var Mqo = function()
-{
+var Mqo = function() {
   this.meshes = [];
   this.materials = [];
 };
@@ -33,7 +32,8 @@ Mqo.prototype.parse = function(text) {
     var objectText = objectTextList[i];
     var mesh = new MqoMesh();
     mesh.parse(objectText);
-    this.meshes.push(mesh);
+    if (mesh.visible)
+      this.meshes.push(mesh);
   }
 
   // マテリアル
@@ -41,7 +41,7 @@ Mqo.prototype.parse = function(text) {
   if (materialText) {
     this.materials = this._parseMaterials(materialText[0]);
   }
-}
+};
 
 /**
 * メタセコメッシュ
@@ -56,9 +56,17 @@ var MqoMesh = function() {
   this.depth = 0;        // 階層の深さ
   this.mirror = 0;
   this.mirrorAxis = 0;
+  this.visible = true;
 };
 
 MqoMesh.prototype.parse = function(text) {
+  // 0: 非表示, 15: 表示
+  var visible = text.match(/visible (\d+)$/m);
+  if (visible && visible[1] === '0') {
+    this.visible = false;
+    return;
+  }
+
   // 名前
   var name = text.match(/^Object[\s\S]+\"([^\"]+)?\"/);
   if (name) { this.name = name[1]; }
@@ -67,7 +75,7 @@ MqoMesh.prototype.parse = function(text) {
   var facet = text.match(/facet ([0-9\.]+)/);
   if (facet) { this.facet = Number(facet[1]); }
 
-  //階層の深さ
+  // 階層の深さ
   var depth = text.match(/depth ([0-9\.]+)/);
   if (depth) { this.depth = Number(depth[1]); }
 
@@ -303,7 +311,7 @@ Mqo.prototype._parseMaterials = function(text) {
   }
 
   return materials;
-}
+};
 
 if (typeof exports !== 'undefined') {
   if (typeof module !== 'undefined' && module.exports) {
@@ -313,4 +321,3 @@ if (typeof exports !== 'undefined') {
 } else {
   this['MqoParser'] = MqoParser;
 }
-
