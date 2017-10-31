@@ -11,29 +11,34 @@ MqoConverter.toTHREEJS_Geometry = function(mqo, options) {
     options = {};
   }
 
-  var texturePath = options.texturePath || '.';
   var scale = options.scale || 0.01;
 
-  var geometry = new THREE.Geometry()
+  var geometry = new THREE.Geometry();
   mqo.meshes.forEach(function(mqoMesh) {
-    THREE.GeometryUtils.merge(geometry, MqoConverter.generateGeometry(mqoMesh, scale))
-  })
+    geometry.merge(MqoConverter.generateGeometry(mqoMesh, scale));
+  });
 
-  geometry.computeCentroids();
+//geometry.computeCentroids();
   geometry.computeBoundingBox();
   geometry.computeFaceNormals();
   geometry.computeVertexNormals();
 
   return geometry;
-}
+};
 
 /**
  *
  * @param mqoMaterials
- * @param texturePath
+ * @param options
  * @returns {Array|*|dojo|NodeList}
  */
-MqoConverter.generateMaterials = function(mqoMaterials, texturePath) {
+MqoConverter.generateMaterials = function(mqoMaterials, options) {
+  if(!options) {
+    options = {};
+  }
+
+  var texturePath = options.texturePath || '.';
+
   // マテリアルリスト
   return mqoMaterials.map(function(mqoMaterial) {
     var material = null;
@@ -41,7 +46,7 @@ MqoConverter.generateMaterials = function(mqoMaterials, texturePath) {
       material = new THREE.MeshLambertMaterial();
     } else if(mqoMaterial.shader == 3) {
       material = new THREE.MeshPhongMaterial();
-    } else  {
+    } else {
       material = new THREE.MeshBasicMaterial();
     }
 
@@ -78,16 +83,16 @@ MqoConverter.generateMaterials = function(mqoMaterials, texturePath) {
     }
 
     if(mqoMaterial.tex){
-       material.map = THREE.ImageUtils.loadTexture(texturePath + '/' + mqoMaterial.tex);
+      material.map = new THREE.TextureLoader().load(texturePath + '/' + mqoMaterial.tex);
     }
 
     material.transparent = true;
     material.shiness = mqoMaterial.power;
-    material.opacity = mqoMaterial.col[3]
+    material.opacity = mqoMaterial.col[3];
 
     return material;
   });
-}
+};
 
 /**
  *
@@ -107,8 +112,7 @@ MqoConverter.generateGeometry = function(mqoMesh, scale) {
 
   // チェック
   var smoothingValue = Math.cos(mqoMesh.facet * Math.PI / 180);
-  var checkVertexNormalize = function(n, vn)
-  {
+  var checkVertexNormalize = function(n, vn) {
     var c = n[0] * vn[0] + n[1] * vn[1] + n[2] * vn[2];
     return (c > smoothingValue) ? vn : n;
   };
@@ -126,7 +130,7 @@ MqoConverter.generateGeometry = function(mqoMesh, scale) {
 
       // 法線
       var n = face.n;
-      var tn = []
+      var tn = [];
       for(var j = 0; j < 3; ++j) {
         var vn = mqoMesh.vertNorms[vIndex[j]];
         tn.push(checkVertexNormalize(n, vn));
@@ -146,11 +150,10 @@ MqoConverter.generateGeometry = function(mqoMesh, scale) {
         new THREE.Vector2(face.uv[2], 1.0 - face.uv[3]),
         new THREE.Vector2(face.uv[0], 1.0 - face.uv[1])
       ]);
-    }
-    else if (face.vNum == 4) {
+    } else if (face.vNum == 4) {
       // 法線
       var n = face.n;
-      var tn = []
+      var tn = [];
       for(var j = 0; j < 4; ++j) {
         var vn = mqoMesh.vertNorms[vIndex[j]];
         tn.push(checkVertexNormalize(n, vn));
@@ -189,7 +192,7 @@ MqoConverter.generateGeometry = function(mqoMesh, scale) {
       geometry.faceVertexUvs[0].push([
         new THREE.Vector2(face.uv[2], 1.0 - face.uv[3]),
         new THREE.Vector2(face.uv[0], 1.0 - face.uv[1]),
-        new THREE.Vector2(face.uv[6], 1.0 - face.uv[7]),
+        new THREE.Vector2(face.uv[6], 1.0 - face.uv[7])
       ]);
     }
   }
@@ -206,8 +209,7 @@ MqoConverter.generateGeometry = function(mqoMesh, scale) {
 MqoConverter.toCompressedObject = function (mqo, scale) {
   var geometry = new THREE.Geometry();
   mqo.meshes.forEach(function (mqoMesh) {
-    THREE.GeometryUtils.merge(geometry, MqoConverter.generateGeometry(mqoMesh, scale))
-    return
+    geometry.merge(MqoConverter.generateGeometry(mqoMesh, scale));
   });
 
   return {
@@ -237,7 +239,7 @@ MqoConverter.toCompressedObject = function (mqo, scale) {
         [uv[2].x, uv[2].y]
       ]
     })
-  }
+  };
 };
 
 if (typeof exports !== 'undefined') {

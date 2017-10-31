@@ -9,11 +9,11 @@ Demo
 
 Usage
 -----
-    <!doctype html>
+    <!DOCTYPE html>
     <html>
       <head>
         <meta charset="UTF-8" />
-        <script src="Three.js"></script>
+        <script src="three.js"></script>
         <script src="mqoparser.js"></script>
         <script src="mqoconverter.js"></script>
         <style>
@@ -28,9 +28,9 @@ Usage
             var camera, scene, renderer, mesh;
 
             MqoParser.load('asset/geometry.mqo', function(mqo){
-              mesh = MqoConverter.toTHREEJS(mqo, {
-                texturePath : 'asset'
-              });
+              var geometry  = MqoConverter.toTHREEJS_Geometry(mqo, {scale : 0.005});
+              var materials = MqoConverter.generateMaterials(mqo.materials, {texturePath : 'asset'});
+              mesh = new THREE.Mesh(geometry, materials);
 
               init();
               animate();
@@ -76,4 +76,3 @@ Usage
         </script>
       </head>
     </html>
-
