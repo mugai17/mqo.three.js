@@ -85,10 +85,12 @@ MqoConverter.generateMaterials = function(mqoMaterials, options) {
 
     if(mqoMaterial.tex) {
       material.map = new THREE.TextureLoader().load(texturePath + '/' + mqoMaterial.tex);
+      material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
     }
 
     if(mqoMaterial.bump) {
       material.bumpMap = new THREE.TextureLoader().load(texturePath + '/' + mqoMaterial.bump);
+      material.bumpMap.wrapS = material.bumpMap.wrapT = THREE.RepeatWrapping;
       material.bumpScale = bumpScale;
     }
 
