@@ -13,10 +13,10 @@
       };
     </style>
     <script>
-      window.addEventListener('load', function() {
+      window.addEventListener('load', () => {
         var camera, scene, renderer, mesh;
 
-        MqoParser.load('asset/geometry.mqo', function(mqo){
+        MqoParser.load('asset/geometry.mqo', (mqo) => {
           var geometry  = MqoConverter.toTHREEJS_Geometry(mqo, {scale : 0.005});
           var materials = MqoConverter.generateMaterials(mqo.materials, {texturePath : 'asset', bumpScale : 0.5});
           mesh = new THREE.Mesh(geometry, materials);
@@ -25,7 +25,7 @@
           animate();
         });
 
-        var init = function() {
+        var init = () => {
           scene = new THREE.Scene();
 
           camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 100 );
@@ -47,20 +47,20 @@
           renderer.setSize( window.innerWidth, window.innerHeight );
 
           document.body.appendChild( renderer.domElement );
-        }
+        };
 
-        var animate = function() {
-          if(mesh != null) {
+        var animate = () => {
+          if (mesh != null) {
             mesh.rotation.x += 0.005;
             mesh.rotation.y += 0.02;
           }
           requestAnimationFrame(animate);
           render();
-        }
+        };
 
-        var render = function () {
+        var render = () => {
           renderer.render( scene, camera );
-        }
+        };
       }, false);
     </script>
   </head>

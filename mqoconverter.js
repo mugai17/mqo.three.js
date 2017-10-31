@@ -6,15 +6,11 @@ var MqoConverter = {};
  * @param options
  * @returns {Geometry}
  */
-MqoConverter.toTHREEJS_Geometry = function(mqo, options) {
-  if(!options) {
-    options = {};
-  }
-
+MqoConverter.toTHREEJS_Geometry = (mqo, options = {}) => {
   var scale = options.scale || 0.01;
 
   var geometry = new THREE.Geometry();
-  mqo.meshes.forEach(function(mqoMesh) {
+  mqo.meshes.forEach(mqoMesh => {
     geometry.merge(MqoConverter.generateGeometry(mqoMesh, scale));
   });
 
@@ -32,26 +28,22 @@ MqoConverter.toTHREEJS_Geometry = function(mqo, options) {
  * @param options
  * @returns {Array|*|dojo|NodeList}
  */
-MqoConverter.generateMaterials = function(mqoMaterials, options) {
-  if(!options) {
-    options = {};
-  }
-
+MqoConverter.generateMaterials = (mqoMaterials, options = {}) => {
   var texturePath = options.texturePath || '.';
   var bumpScale   = options.bumpScale   || 1;
 
   // マテリアルリスト
-  return mqoMaterials.map(function(mqoMaterial) {
+  return mqoMaterials.map(mqoMaterial => {
     var material = null;
-    if(mqoMaterial.shader == 2) {
+    if (mqoMaterial.shader == 2) {
       material = new THREE.MeshLambertMaterial();
-    } else if(mqoMaterial.shader == 3) {
+    } else if (mqoMaterial.shader == 3) {
       material = new THREE.MeshPhongMaterial();
     } else {
       material = new THREE.MeshBasicMaterial();
     }
 
-    if(material.color) {
+    if (material.color) {
       material.color.setRGB(
         mqoMaterial.col[0] * mqoMaterial.dif,
         mqoMaterial.col[1] * mqoMaterial.dif,
@@ -59,7 +51,7 @@ MqoConverter.generateMaterials = function(mqoMaterials, options) {
       );
     }
 
-    if(material.emissive) {
+    if (material.emissive) {
       material.emissive.setRGB(
         mqoMaterial.col[0] * mqoMaterial.emi,
         mqoMaterial.col[1] * mqoMaterial.emi,
@@ -67,7 +59,7 @@ MqoConverter.generateMaterials = function(mqoMaterials, options) {
       );
     }
 
-    if(material.ambient) {
+    if (material.ambient) {
       material.ambient.setRGB(
         mqoMaterial.col[0] * mqoMaterial.amb,
         mqoMaterial.col[1] * mqoMaterial.amb,
@@ -75,7 +67,7 @@ MqoConverter.generateMaterials = function(mqoMaterials, options) {
       );
     }
 
-    if(material.specular) {
+    if (material.specular) {
       material.specular.setRGB(
         mqoMaterial.col[0] * mqoMaterial.spc,
         mqoMaterial.col[1] * mqoMaterial.spc,
@@ -83,12 +75,12 @@ MqoConverter.generateMaterials = function(mqoMaterials, options) {
       );
     }
 
-    if(mqoMaterial.tex) {
+    if (mqoMaterial.tex) {
       material.map = new THREE.TextureLoader().load(texturePath + '/' + mqoMaterial.tex);
       material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
     }
 
-    if(mqoMaterial.bump) {
+    if (mqoMaterial.bump) {
       material.bumpMap = new THREE.TextureLoader().load(texturePath + '/' + mqoMaterial.bump);
       material.bumpMap.wrapS = material.bumpMap.wrapT = THREE.RepeatWrapping;
       material.bumpScale = bumpScale;
@@ -108,26 +100,25 @@ MqoConverter.generateMaterials = function(mqoMaterials, options) {
  * @param scale
  * @returns {Geometry}
  */
-MqoConverter.generateGeometry = function(mqoMesh, scale) {
+MqoConverter.generateGeometry = (mqoMesh, scale) => {
   var geometry = new THREE.Geometry();
-  for(var i = 0; i < mqoMesh.vertices.length; ++i) {
+  mqoMesh.vertices.forEach(vertex => {
     geometry.vertices.push(new THREE.Vector3(
-      mqoMesh.vertices[i][0] * scale,
-      mqoMesh.vertices[i][1] * scale,
-      mqoMesh.vertices[i][2] * scale
+      vertex[0] * scale,
+      vertex[1] * scale,
+      vertex[2] * scale
     ));
-  }
+  });
 
   // チェック
   var smoothingValue = Math.cos(mqoMesh.facet * Math.PI / 180);
-  var checkVertexNormalize = function(n, vn) {
+  var checkVertexNormalize = (n, vn) => {
     var c = n[0] * vn[0] + n[1] * vn[1] + n[2] * vn[2];
     return (c > smoothingValue) ? vn : n;
   };
 
   // indices と uv を作成
-  for (var i = 0; i < mqoMesh.faces.length; ++i) {
-    var face = mqoMesh.faces[i];
+  mqoMesh.faces.forEach(face => {
     var vIndex = face.v;
     var index = geometry.vertices.length;
 
@@ -139,7 +130,7 @@ MqoConverter.generateGeometry = function(mqoMesh, scale) {
       // 法線
       var n = face.n;
       var tn = [];
-      for(var j = 0; j < 3; ++j) {
+      for (var j = 0; j < 3; ++j) {
         var vn = mqoMesh.vertNorms[vIndex[j]];
         tn.push(checkVertexNormalize(n, vn));
       }
@@ -162,7 +153,7 @@ MqoConverter.generateGeometry = function(mqoMesh, scale) {
       // 法線
       var n = face.n;
       var tn = [];
-      for(var j = 0; j < 4; ++j) {
+      for (var j = 0; j < 4; ++j) {
         var vn = mqoMesh.vertNorms[vIndex[j]];
         tn.push(checkVertexNormalize(n, vn));
       }
@@ -203,7 +194,7 @@ MqoConverter.generateGeometry = function(mqoMesh, scale) {
         new THREE.Vector2(face.uv[6], 1.0 - face.uv[7])
       ]);
     }
-  }
+  });
 
   return geometry;
 };
@@ -214,39 +205,33 @@ MqoConverter.generateGeometry = function(mqoMesh, scale) {
  * @param scale
  * @returns {{materials: (THREE.JSONLoader.parse.materials|*|materials|Array|.materials.materials|THREE.MeshFaceMaterial.materials), vertices: (Array|*), faces: (Array|*), uv: (Array|*|dojo|NodeList)}}
  */
-MqoConverter.toCompressedObject = function (mqo, scale) {
+MqoConverter.toCompressedObject = (mqo, scale) => {
   var geometry = new THREE.Geometry();
-  mqo.meshes.forEach(function (mqoMesh) {
+  mqo.meshes.forEach(mqoMesh => {
     geometry.merge(MqoConverter.generateGeometry(mqoMesh, scale));
   });
 
   return {
     materials: mqo.materials,
-    vertices: geometry.vertices.map(function (v) {
-      return {
-        p: [ v.x, v.y, v.z],
-        i: [0, 0, 0, 0],
-        w: [1, 0, 0, 0]
-      }
-    }),
+    vertices: geometry.vertices.map(v => ({
+      p: [v.x, v.y, v.z],
+      i: [0, 0, 0, 0],
+      w: [1, 0, 0, 0]
+    })),
 
-    faces: geometry.faces.map(function (face) {
-      return {
-        a: face.a,
-        b: face.b,
-        c: face.c,
-        m: face.materialIndex,
-        n: [ face.normal.x, face.normal.y, face.normal.z]
-      }
-    }),
+    faces: geometry.faces.map(face => ({
+      a: face.a,
+      b: face.b,
+      c: face.c,
+      m: face.materialIndex,
+      n: [face.normal.x, face.normal.y, face.normal.z]
+    })),
 
-    uv: geometry.faceVertexUvs[0].map(function (uv) {
-      return [
-        [uv[0].x, uv[0].y],
-        [uv[1].x, uv[1].y],
-        [uv[2].x, uv[2].y]
-      ]
-    })
+    uv: geometry.faceVertexUvs[0].map(uv => [
+      [uv[0].x, uv[0].y],
+      [uv[1].x, uv[1].y],
+      [uv[2].x, uv[2].y]
+    ])
   };
 };
 
