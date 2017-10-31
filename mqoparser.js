@@ -294,18 +294,16 @@ Mqo.prototype._parseMaterials = function(text) {
     for (var j = 0, len2 = info.length; j < len2; ++j) {
       var m = info[j].match(/([A-Za-z]+)\(([\w\W]+?)\)/);
       var key = m[1].toLowerCase();
-      var value = null;
 
-      if (key != 'tex') {
-        value = m[2].split(' ');
-        value.forEach(function(elm, i, arr) {
-          arr[i] = Number(elm);
-        });
+      switch (key) {
+        case 'tex':
+        case 'aplane':
+        case 'bump':
+          mat[key] = m[2].replace(/"/g, '');
+          break;
+        default:
+          mat[key] = m[2].split(' ').map(function(val) {return Number(val)});
       }
-      else {
-        value = m[2].replace(/"/g, '');
-      }
-      mat[key] = value;
     }
     materials.push(mat);
   }

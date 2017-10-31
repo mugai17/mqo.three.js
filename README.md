@@ -29,7 +29,7 @@ Usage
 
             MqoParser.load('asset/geometry.mqo', function(mqo){
               var geometry  = MqoConverter.toTHREEJS_Geometry(mqo, {scale : 0.005});
-              var materials = MqoConverter.generateMaterials(mqo.materials, {texturePath : 'asset'});
+              var materials = MqoConverter.generateMaterials(mqo.materials, {texturePath : 'asset', bumpScale : 0.5});
               mesh = new THREE.Mesh(geometry, materials);
 
               init();

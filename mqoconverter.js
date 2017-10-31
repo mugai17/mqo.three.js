@@ -38,6 +38,7 @@ MqoConverter.generateMaterials = function(mqoMaterials, options) {
   }
 
   var texturePath = options.texturePath || '.';
+  var bumpScale   = options.bumpScale   || 1;
 
   // マテリアルリスト
   return mqoMaterials.map(function(mqoMaterial) {
@@ -82,8 +83,13 @@ MqoConverter.generateMaterials = function(mqoMaterials, options) {
       );
     }
 
-    if(mqoMaterial.tex){
+    if(mqoMaterial.tex) {
       material.map = new THREE.TextureLoader().load(texturePath + '/' + mqoMaterial.tex);
+    }
+
+    if(mqoMaterial.bump) {
+      material.bumpMap = new THREE.TextureLoader().load(texturePath + '/' + mqoMaterial.bump);
+      material.bumpScale = bumpScale;
     }
 
     material.transparent = true;
