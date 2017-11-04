@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <script src="js/aframe.js"></script>
+    <script src="../aframe-mqo-model-component.js"></script>
+  </head>
+  <body>
+    <a-scene>
+      <a-mqo-model src="asset/geometry.mqo" texture-path="asset">
+        <a-animation attribute="rotation" from="0 0 0" to="360 360 0" dur="10000" repeat="indefinite" easing="linear"></a-animation>
+      </a-mqo-model>
+
+      <a-entity position="0 0 2">
+        <a-camera user-height="0"></a-camera>
+      </a-entity>
+    </a-scene>
+  </body>
+</html>
