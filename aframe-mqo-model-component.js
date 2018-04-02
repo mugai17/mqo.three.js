@@ -44,9 +44,8 @@
 /* 0 */
 /***/ (function(module, exports, __webpack_require__) {
 
-	if (typeof AFRAME === 'undefined') {
+	if (typeof AFRAME === 'undefined')
 		throw new Error('Component attempted to register before AFRAME was available.');
-	}
 
 	const MqoParser    = __webpack_require__(1);
 	const MqoConverter = __webpack_require__(2);
@@ -63,23 +62,20 @@
 		},
 
 		update(oldData) {
-			var self        = this,
-			    el          = this.el,
-			    src         = this.data.src,
-			    texturePath = this.data.texturePath,
-			    bumpScale   = this.data.bumpScale;
+			const {el} = this;
+			const {src, texturePath, bumpScale} = this.data;
 
 			if (!src)
 				return;
 
 			MqoParser.load(src, (mqo) => {
-				var geometry  = MqoConverter.toTHREEJS_Geometry(mqo, {scale: 0.01});
-				var materials = MqoConverter.generateMaterials(mqo.materials, {texturePath: texturePath, bumpScale: bumpScale});
+				const geometry  = MqoConverter.toTHREEJS_Geometry(mqo, {scale: 0.01});
+				const materials = MqoConverter.generateMaterials(mqo.materials, {texturePath, bumpScale});
 
-				self.model = new THREE.Mesh(geometry, materials);
+				this.model = new THREE.Mesh(geometry, materials);
 
-				el.setObject3D('mesh', self.model);
-				el.emit('model-loaded', {format: 'mqo', model: self.model});
+				el.setObject3D('mesh', this.model);
+				el.emit('model-loaded', {format: 'mqo', model: this.model});
 			});
 		},
 
@@ -91,16 +87,13 @@
 		}
 	});
 
-	var extendDeep = AFRAME.utils.extendDeep;
-	var meshMixin  = AFRAME.primitives.getMeshMixin();
-
-	AFRAME.registerPrimitive('a-mqo-model', extendDeep({}, meshMixin, {
+	AFRAME.registerPrimitive('a-mqo-model', {
 		mappings: {
 			'src'          : 'mqo-model.src',
 			'texture-path' : 'mqo-model.texturePath',
 			'bump-scale'   : 'mqo-model.bumpScale'
 		}
-	}));
+	});
 
 
 /***/ }),
@@ -148,8 +141,8 @@
 	  }
 
 	  /**
-	  * メタセコ用マテリアル
-	  */
+	   * メタセコ用マテリアル
+	   */
 	  _parseMaterials(text) {
 	    var infoText = text.match(/^Material [0-9]* \{\r\n([\s\S]*?)\n^\}$/m);
 	    var matTextList = infoText[1].split('\n');
@@ -182,8 +175,8 @@
 	}
 
 	/**
-	* メタセコメッシュ
-	*/
+	 * メタセコメッシュ
+	 */
 	class MqoMesh {
 	  constructor() {
 	    this.name       = '';	// 名前
