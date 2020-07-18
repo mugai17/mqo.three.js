@@ -1,0 +1,7 @@
+{
+  "name": "mqo.three.js",
+  "version": "1.0.0",
+  "description": "mqo.three.js is a mqo importer for three.js.",
+  "author": "nyamadan",
+  "license": "MIT"
+}
