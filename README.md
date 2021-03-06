@@ -13,9 +13,10 @@ Usage
     <html>
       <head>
         <meta charset="UTF-8" />
-        <script src="three.js"></script>
-        <script src="mqoparser.js"></script>
-        <script src="mqoconverter.js"></script>
+        <script src="https://unpkg.com/three@0.125.0/build/three.min.js"></script>
+        <script src="https://unpkg.com/three@0.125.0/examples/js/controls/OrbitControls.js"></script>
+        <script src="../mqoparser.js"></script>
+        <script src="../mqoconverter.js"></script>
         <style>
           body {
             margin: 0px;
@@ -46,16 +47,15 @@ Usage
               scene.add( new THREE.DirectionalLight(0x7f7f7f));
               scene.add( new THREE.AmbientLight(0xc0c0c0));
 
-              var axis =  new THREE.AxisHelper();
-              axis.scale.x = 0.01;
-              axis.scale.y = 0.01;
-              axis.scale.z = 0.01;
-              scene.add(axis);
+              var axes = new THREE.AxesHelper();
+              scene.add(axes);
 
               scene.add(mesh);
 
               renderer = new THREE.WebGLRenderer();
               renderer.setSize( window.innerWidth, window.innerHeight );
+
+              var controls = new THREE.OrbitControls( camera, renderer.domElement );
 
               document.body.appendChild( renderer.domElement );
             };

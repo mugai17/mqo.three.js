@@ -7,16 +7,104 @@ var MqoConverter = {};
  * @returns {Geometry}
  */
 MqoConverter.toTHREEJS_Geometry = (mqo, options = {}) => {
-  var scale = options.scale || 0.01;
+  const scale = options.scale || 0.01;
+  const positions = [];
+  const uvs = [];
+  const groups = [];
 
-  var geometry = new THREE.Geometry();
+  let start = 0;
+  let count = 0;
+
   mqo.meshes.forEach(mqoMesh => {
-    geometry.merge(MqoConverter.generateGeometry(mqoMesh, scale));
+    const {faces, vertices} = mqoMesh;
+
+    if (faces.length === 0)
+      return;
+
+    let materialIndex = faces[0].m[0];
+
+    // indices と uv を作成
+    faces.forEach(face => {
+      const {m, v, uv, vNum} = face;
+
+      if (materialIndex !== m[0]) {
+        groups.push({start, count, materialIndex});
+        materialIndex = m[0];
+        start += count;
+        count = 0;
+      }
+
+      if (vNum === 3) {
+        // 頂点インデックス
+        positions.push(
+          ...vertices[v[2]],
+          ...vertices[v[1]],
+          ...vertices[v[0]]
+        );
+
+        // UV
+        uvs.push(
+          uv[4], 1.0 - uv[5],
+          uv[2], 1.0 - uv[3],
+          uv[0], 1.0 - uv[1]
+        );
+
+        count += 3;
+      } else if (vNum === 4) {
+        positions.push(
+          ...vertices[v[3]],
+          ...vertices[v[2]],
+          ...vertices[v[1]],
+
+          ...vertices[v[1]],
+          ...vertices[v[0]],
+          ...vertices[v[3]]
+        );
+
+        // UV
+        uvs.push(
+          uv[6], 1.0 - uv[7],
+          uv[4], 1.0 - uv[5],
+          uv[2], 1.0 - uv[3],
+
+          uv[2], 1.0 - uv[3],
+          uv[0], 1.0 - uv[1],
+          uv[6], 1.0 - uv[7]
+        );
+
+        count += 6;
+      } else {
+        // n-gon
+        for (let i = 1, l = vNum - 1; i < l; i++) {
+          positions.push(
+            ...vertices[v[i + 1]],
+            ...vertices[v[i]],
+            ...vertices[v[0]]
+          );
+
+          uvs.push(
+            uv[(i + 1) * 2], 1.0 - uv[(i + 1) * 2 + 1],
+            uv[i * 2],       1.0 - uv[i * 2 + 1],
+            uv[0],           1.0 - uv[1]
+          );
+
+          count += 3;
+        }
+      }
+    });
+
+    groups.push({start, count, materialIndex});
+    start += count;
+    count = 0;
   });
 
-//geometry.computeCentroids();
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions.map(v => v * scale), 3));
+  geometry.setAttribute('uv',       new THREE.Float32BufferAttribute(uvs, 2));
+  geometry.groups = groups;
+
   geometry.computeBoundingBox();
-  geometry.computeFaceNormals();
+  geometry.computeBoundingSphere();
   geometry.computeVertexNormals();
 
   return geometry;
@@ -92,111 +180,6 @@ MqoConverter.generateMaterials = (mqoMaterials, options = {}) => {
 
     return material;
   });
-};
-
-/**
- *
- * @param mqoMesh
- * @param scale
- * @returns {Geometry}
- */
-MqoConverter.generateGeometry = (mqoMesh, scale) => {
-  var geometry = new THREE.Geometry();
-  mqoMesh.vertices.forEach(vertex => {
-    geometry.vertices.push(new THREE.Vector3(
-      vertex[0] * scale,
-      vertex[1] * scale,
-      vertex[2] * scale
-    ));
-  });
-
-  // チェック
-  var smoothingValue = Math.cos(mqoMesh.facet * Math.PI / 180);
-  var checkVertexNormalize = (n, vn) => {
-    var c = n[0] * vn[0] + n[1] * vn[1] + n[2] * vn[2];
-    return (c > smoothingValue) ? vn : n;
-  };
-
-  // indices と uv を作成
-  mqoMesh.faces.forEach(face => {
-    var vIndex = face.v;
-    var index = geometry.vertices.length;
-
-    if (face.vNum == 3) {
-      // 頂点インデックス
-      var face3 = new THREE.Face3(vIndex[2], vIndex[1], vIndex[0], undefined, undefined, face.m[0]);
-      geometry.faces.push(face3);
-
-      // 法線
-      var n = face.n;
-      var tn = [];
-      for (var j = 0; j < 3; ++j) {
-        var vn = mqoMesh.vertNorms[vIndex[j]];
-        tn.push(checkVertexNormalize(n, vn));
-      }
-
-      face3.normal.x = n[0];
-      face3.normal.y = n[1];
-      face3.normal.z = n[2];
-
-      face3.vertexNormals.push(new THREE.Vector3(tn[2][0], tn[2][1], tn[2][2]));
-      face3.vertexNormals.push(new THREE.Vector3(tn[1][0], tn[1][1], tn[1][2]));
-      face3.vertexNormals.push(new THREE.Vector3(tn[0][0], tn[0][1], tn[0][2]));
-
-      // UV
-      geometry.faceVertexUvs[0].push([
-        new THREE.Vector2(face.uv[4], 1.0 - face.uv[5]),
-        new THREE.Vector2(face.uv[2], 1.0 - face.uv[3]),
-        new THREE.Vector2(face.uv[0], 1.0 - face.uv[1])
-      ]);
-    } else if (face.vNum == 4) {
-      // 法線
-      var n = face.n;
-      var tn = [];
-      for (var j = 0; j < 4; ++j) {
-        var vn = mqoMesh.vertNorms[vIndex[j]];
-        tn.push(checkVertexNormalize(n, vn));
-      }
-
-      var face3 = new THREE.Face3(vIndex[3], vIndex[2], vIndex[1], undefined, undefined, face.m[0]);
-      geometry.faces.push(face3);
-
-      face3.normal.x = n[0];
-      face3.normal.y = n[1];
-      face3.normal.z = n[2];
-
-      face3.vertexNormals.push(new THREE.Vector3(tn[3][0], tn[3][1], tn[3][2]));
-      face3.vertexNormals.push(new THREE.Vector3(tn[2][0], tn[2][1], tn[2][2]));
-      face3.vertexNormals.push(new THREE.Vector3(tn[1][0], tn[1][1], tn[1][2]));
-
-      // UV
-      geometry.faceVertexUvs[0].push([
-        new THREE.Vector2(face.uv[6], 1.0 - face.uv[7]),
-        new THREE.Vector2(face.uv[4], 1.0 - face.uv[5]),
-        new THREE.Vector2(face.uv[2], 1.0 - face.uv[3])
-      ]);
-
-      var face3 = new THREE.Face3(vIndex[1], vIndex[0], vIndex[3], undefined, undefined, face.m[0]);
-      geometry.faces.push(face3);
-
-      face3.normal.x = n[0];
-      face3.normal.y = n[1];
-      face3.normal.z = n[2];
-
-      face3.vertexNormals.push(new THREE.Vector3(tn[1][0], tn[1][1], tn[1][2]));
-      face3.vertexNormals.push(new THREE.Vector3(tn[0][0], tn[0][1], tn[0][2]));
-      face3.vertexNormals.push(new THREE.Vector3(tn[3][0], tn[3][1], tn[3][2]));
-
-      // UV
-      geometry.faceVertexUvs[0].push([
-        new THREE.Vector2(face.uv[2], 1.0 - face.uv[3]),
-        new THREE.Vector2(face.uv[0], 1.0 - face.uv[1]),
-        new THREE.Vector2(face.uv[6], 1.0 - face.uv[7])
-      ]);
-    }
-  });
-
-  return geometry;
 };
 
 /**

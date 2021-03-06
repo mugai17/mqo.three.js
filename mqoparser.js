@@ -2,16 +2,10 @@ var MqoParser = {};
 
 MqoParser.load = (url, callback) => {
   new THREE.FileLoader().load(url, (text) => {
-    var mqo = MqoParser.parse(text);
+    const mqo = new Mqo().parse(text);
     if (callback)
       callback(mqo);
   });
-};
-
-MqoParser.parse = (text) => {
-  var mqo = new Mqo();
-  mqo.parse(text);
-  return mqo;
 };
 
 class Mqo {
@@ -45,10 +39,10 @@ class Mqo {
     var infoText = text.match(/^Material [0-9]* \{\r\n([\s\S]*?)\n^\}$/m);
     var matTextList = infoText[1].split('\n');
 
-    var materials = matTextList.map(matText => {
+    return matTextList.map(matText => {
       var mat = {};
       // トリムっとく
-      matText = matText.replace(/^\s+|\s+$/g, '');
+      matText = matText.trim();
       var info = matText.match(/([A-Za-z]+)\(([\w\W]+?)\)/gi);
 
       info.forEach(infoText => {
@@ -67,8 +61,6 @@ class Mqo {
       });
       return mat;
     });
-
-    return materials;
   }
 }
 
@@ -139,141 +131,71 @@ class MqoMesh {
     }
 
     if (this.mirror) {
-      var toMirror = {
-        1: (v) => [v[0] * -1, v[1], v[2]],
-        2: (v) => [v[0], v[1] * -1, v[2]],
-        4: (v) => [v[0], v[1], v[2] * -1]
-      }[this.mirrorAxis];
+      const x = 0b001;
+      const y = 0b010;
+      const z = 0b100;
 
-      this.vertices.forEach(vertex => {
-        this.vertices.push(toMirror(vertex));
-      });
+      if (x & this.mirrorAxis)
+        this.vertices.forEach(v => this.vertices.push([v[0] * -1, v[1], v[2]]));
+
+      if (y & this.mirrorAxis)
+        this.vertices.forEach(v => this.vertices.push([v[0], v[1] * -1, v[2]]));
+
+      if (z & this.mirrorAxis)
+        this.vertices.forEach(v => this.vertices.push([v[0], v[1], v[2] * -1]));
     }
   }
 
   _parseFaces(num, text) {
     var faceTextList = text.split('\n');
 
-    var calcNormalize = (a, b, c) => {
-      var v1 = [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
-      var v2 = [c[0] - b[0], c[1] - b[1], c[2] - b[2]];
-      var v3 = [
-        v1[1] * v2[2] - v1[2] * v2[1],
-        v1[2] * v2[0] - v1[0] * v2[2],
-        v1[0] * v2[1] - v1[1] * v2[0]
-      ];
-      var len = Math.sqrt(v3[0] * v3[0] + v3[1] * v3[1] + v3[2] * v3[2]);
-
-      if (len === 0)
-        return [0, 0, 0];
-
-      v3[0] /= len;
-      v3[1] /= len;
-      v3[2] /= len;
-
-      return v3;
-    };
-
     for (var i = 1; i <= num; ++i) {
       // トリムっとく
-      var faceText = faceTextList[i].replace(/^\s+|\s+$/g, '');
+      var faceText = faceTextList[i].trim();
       // 面の数
-      var vertex_num = Number(faceText[0]);
+      var vNum = Number(faceText.match(/^([0-9]+) V/)[1]);
 
-      var info = faceText.match(/([A-Za-z]+)\(([\w\s\-\.\(\)]+?)\)/gi);
       var face = {
-        m    : [undefined],			// マテリアル デフォルト値
-        uv   : [0, 0, 0, 0, 0, 0, 0, 0],	// UV デフォルト値
-        vNum : vertex_num
+        m  : [],			// マテリアル デフォルト値
+        uv : [0, 0, 0, 0, 0, 0, 0, 0],	// UV デフォルト値
+        vNum
       };
 
+      var info = faceText.match(/([A-Za-z]+)\(([\w\s\-\.\(\)]+?)\)/gi);
       info.forEach(infoText => {
         var m = infoText.match(/([A-Za-z]+)\(([\w\s\-\.\(\)]+?)\)/);
         var key = m[1].toLowerCase();
         face[key] = m[2].split(' ').map(val => Number(val));
       });
 
-      // 法線計算
-      if (face.v.length === 3) {
-        face.n = calcNormalize(this.vertices[face.v[0]], this.vertices[face.v[1]], this.vertices[face.v[2]]);
-      } else if (face.v.length === 4) {
-        var n1 = calcNormalize(this.vertices[face.v[0]], this.vertices[face.v[1]], this.vertices[face.v[2]]);
-        var n2 = calcNormalize(this.vertices[face.v[2]], this.vertices[face.v[3]], this.vertices[face.v[0]]);
-        face.n = [
-          (n1[0] + n2[0]) * 0.5,
-          (n1[1] + n2[1]) * 0.5,
-          (n1[2] + n2[2]) * 0.5
-        ];
-      } else {
-        face.n = [0, 0, 0];
-      }
-
       this.faces.push(face);
     }
 
     // ミラー対応
     if (this.mirror) {
-      var swap = function (a, b) { var temp = this[a]; this[a] = this[b]; this[b] = temp; return this; };
-      var vertexOffset = (this.vertices.length / 2);
-      this.faces.forEach(targetFace => {
-        var face = {
-          m    : targetFace.m,
-          n    : targetFace.n,
-          uv   : [...targetFace.uv],
-          v    : targetFace.v.map(val => val + vertexOffset),
-          vNum : targetFace.vNum
-        };
+      const x = 0b001;
+      const y = 0b010;
+      const z = 0b100;
 
-        if (face.vNum === 3) {
-          swap.call(face.v,  1, 2);
-          swap.call(face.uv, 2, 4);
-          swap.call(face.uv, 3, 5);
-        } else if (face.vNum === 4) {
-          swap.call(face.v,  0, 1);
-          swap.call(face.uv, 0, 2);
-          swap.call(face.uv, 1, 3);
+      let n = 0;
+      if (x & this.mirrorAxis) n++;
+      if (y & this.mirrorAxis) n++;
+      if (z & this.mirrorAxis) n++;
 
-          swap.call(face.v,  2, 3);
-          swap.call(face.uv, 4, 6);
-          swap.call(face.uv, 5, 7);
-        }
+      for (; 0 < n; n--) {
+        const vertexOffset = (this.vertices.length / (1 << n));
+        this.faces.forEach(targetFace => {
+          var face = {
+            m    : targetFace.m,
+            uv   : targetFace.uv.reduceRight((acc, cur, i, arr) => (i % 2) ? acc : [...acc, cur, arr[i + 1]], []),
+            v    : targetFace.v.map(v => v + vertexOffset).reverse(),
+            vNum : targetFace.vNum
+          };
 
-        this.faces.push(face);
-      });
+          this.faces.push(face);
+        });
+      }
     }
-
-    // 頂点法線を求める
-    var vertNorm = this.vertices.map(() => []);
-
-    this.faces.forEach(face => {
-      var vIndices = face.v;
-
-      for (var j = 0; j < face.vNum; ++j) {
-        var index = vIndices[j];
-        vertNorm[index].push(face.n);
-      }
-    });
-
-    this.vertNorms = vertNorm.map(vn => {
-      var result = [0, 0, 0];
-      var len = vn.length;
-      for (var j = 0; j < len; ++j) {
-        result[0] += vn[j][0];
-        result[1] += vn[j][1];
-        result[2] += vn[j][2];
-      }
-
-      result[0] /= len;
-      result[1] /= len;
-      result[2] /= len;
-
-      var len = Math.sqrt(result[0] * result[0] + result[1] * result[1] + result[2] * result[2]);
-      result[0] /= len;
-      result[1] /= len;
-      result[2] /= len;
-
-      return result;
-    });
   }
 }
 
